@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>HTML Table Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .row {
+      display: flex;
+      gap: 20px;
+    }
+
+    .container {
+      flex: 1;
+      position: relative;
+    }
+
+    table {
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      padding: 8px 12px;
+      text-align: center;
+    }
+
+    th[contenteditable],
+    td[contenteditable] {
+      background-color: #fefefe;
+      outline: none;
+    }
+
+    .control-button {
+      font-size: 12px;
+      padding: 4px 6px;
+      margin: 2px;
+      cursor: pointer;
+    }
+
+    textarea {
+      width: 100%;
+      height: 400px;
+      font-family: monospace;
+      resize: none;
+    }
+
+    iframe {
+      width: 100%;
+      height: 400px;
+      border: 1px solid #ccc;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+      align-items: center;
+    }
+
+    .copy-button {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .copied-msg {
+      position: absolute;
+      bottom: 50px;
+      right: 10px;
+      background: #4caf50;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HTML Code & Preview -->
+  <div class="row">
+    <div class="container">
+      <h3>HTML Code</h3>
+      <textarea id="htmlCode" readonly></textarea>
+      <button class="copy-button" onclick="copyCode()">Copy Code</button>
+      <div class="copied-msg" id="copiedMsg">Copied ✅</div>
+    </div>
+
+    <div class="container">
+      <h3>Preview</h3>
+      <iframe id="preview"></iframe>
+    </div>
+  </div>
+
+  <!-- Table Generator -->
+  <div class="container">
+    <h3>Table</h3>
+    <div class="controls">
+      <button class="control-button" onclick="addColumn()">Column +</button>
+      <button class="control-button" onclick="removeColumn()">Column −</button>
+      <button class="control-button" onclick="addRow()">Row +</button>
+      <button class="control-button" onclick="removeRow()">Row −</button>
+      <label><input type="checkbox" id="addHeader" onchange="createTable()"> Add heading</label>
+      <label><input type="checkbox" id="addBorder" onchange="createTable()"> Add border</label>
+    </div>
+    <div id="tableContainer"></div>
+  </div>
+
+  <script>
+    let rows = 1;
+    let cols = 1;
+
+    function createTable() {
+      const addHeader = document.getElementById('addHeader').checked;
+      const addBorder = document.getElementById('addBorder').checked;
+
+      const table = document.createElement('table');
+
+      if (addBorder) {
+        table.style.borderCollapse = 'collapse';
+        table.style.border = '1px solid #c5c5c5';
+      }
+
+      table.setAttribute('cellpadding', '1');
+      table.setAttribute('cellspacing', '1');
+
+      if (addHeader) {
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        for (let i = 0; i < cols; i++) {
+          const th = document.createElement('th');
+          th.contentEditable = true;
+          th.textContent = `Heading ${i + 1}`;
+          if (addBorder) th.style = 'border: 1px solid #c5c5c5; padding: 8px; text-align: center;';
+          headerRow.appendChild(th);
+        }
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+      }
+
+      const tbody = document.createElement('tbody');
+      for (let i = 0; i < rows; i++) {
+        const tr = document.createElement('tr');
+        for (let j = 0; j < cols; j++) {
+          const td = document.createElement('td');
+          td.contentEditable = true;
+          td.textContent = `R${i + 1}C${j + 1}`;
+          if (addBorder) td.style = 'border: 1px solid #c5c5c5; padding: 8px; text-align: center;';
+          tr.appendChild(td);
+        }
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+
+      const container = document.getElementById('tableContainer');
+      container.innerHTML = '';
+      container.appendChild(table);
+
+      const allEditableCells = table.querySelectorAll('[contenteditable]');
+      allEditableCells.forEach(cell => {
+        cell.addEventListener('input', updateCode);
+
+        cell.addEventListener('paste', function (e) {
+          e.preventDefault();
+          const text = e.clipboardData.getData("text/plain");
+          document.execCommand("insertText", false, text);
+        });
+      });
+
+      updateCode();
+    }
+
+    function addRow() {
+      rows++;
+      createTable();
+    }
+
+    function removeRow() {
+      if (rows > 1) rows--;
+      createTable();
+    }
+
+    function addColumn() {
+      cols++;
+      createTable();
+    }
+
+    function removeColumn() {
+      if (cols > 1) cols--;
+      createTable();
+    }
+
+    function updateCode() {
+      const addBorder = document.getElementById('addBorder').checked;
+
+      const container = document.getElementById('tableContainer');
+      const clone = container.cloneNode(true);
+
+      clone.querySelectorAll('[contenteditable]').forEach(el => {
+        el.removeAttribute('contenteditable');
+      });
+
+      const table = clone.querySelector('table');
+      if (table) {
+        table.removeAttribute('border');
+        if (addBorder) {
+          table.setAttribute('style', 'border-collapse: collapse; border: 1px solid #c5c5c5;');
+        } else {
+          table.removeAttribute('style');
+        }
+      }
+
+      const cells = clone.querySelectorAll('th, td');
+      cells.forEach(cell => {
+        if (addBorder) {
+          cell.setAttribute('style', 'border: 1px solid #c5c5c5; padding: 8px; text-align: center;');
+        } else {
+          cell.removeAttribute('style');
+        }
+      });
+
+      const html = clone.innerHTML.trim();
+      const beautified = beautifyHTML(html);
+      document.getElementById('htmlCode').value = beautified;
+      document.getElementById('preview').srcdoc = beautified;
+    }
+
+    function beautifyHTML(html) {
+      const tab = '  ';
+      let result = '';
+      let indentLevel = 0;
+
+      html = html.replace(/>\s*</g, '><').trim();
+      const tokens = html.split(/(?=<)|(?<=>)/g).filter(Boolean);
+
+      tokens.forEach(token => {
+        if (token.match(/^<\/\w/)) {
+          indentLevel = Math.max(indentLevel - 1, 0);
+          result += tab.repeat(indentLevel) + token + '\n';
+        } else if (token.match(/^<\w/) && !token.endsWith('/>') && !token.includes('</')) {
+          result += tab.repeat(indentLevel) + token + '\n';
+          indentLevel++;
+        } else if (token.match(/^<.*\/>$/) || token.match(/^<\w.*>.*<\/\w+>$/)) {
+          result += tab.repeat(indentLevel) + token + '\n';
+        } else {
+          result += tab.repeat(indentLevel) + token.trim() + '\n';
+        }
+      });
+
+      return result.trim();
+    }
+
+    function copyCode() {
+      const textarea = document.getElementById("htmlCode");
+      textarea.select();
+      document.execCommand("copy");
+
+      const msg = document.getElementById("copiedMsg");
+      msg.style.display = "block";
+      setTimeout(() => msg.style.display = "none", 2000);
+    }
+
+    window.onload = () => {
+      createTable();
+    };
+  </script>
+</body>
+</html>
